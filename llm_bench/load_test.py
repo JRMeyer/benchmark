@@ -796,6 +796,11 @@ class LLMUser(HttpUser):
                 print("---")
                 print(combined_text)
                 print("---")
+            if self.environment.parsed_options.output_file:
+                prompt.append({"role": "assistant", "content": combined_text})
+                json_string = json.dumps(prompt)
+                with open(self.environment.parsed_options.output_file, "a") as f:
+                    f.write(json_string + "\n")
             if num_chars:
                 add_custom_metric(
                     "latency_per_char", dur_generation / num_chars * 1000, num_chars
@@ -970,6 +975,12 @@ def init_parser(parser):
         action=argparse.BooleanOptionalAction,
         default=False,
         help="Print the result of each generation",
+    )
+    parser.add_argument(
+        '--output-file',
+        type=str,
+        required=False,
+        help='Path to the output JSONL file where model output is stored. The model response will be appended to the input prompt, such that each line shows the chat history'
     )
 
 
