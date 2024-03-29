@@ -237,6 +237,8 @@ class BaseProvider(abc.ABC):
     @abc.abstractmethod
     def parse_output_json(self, json, prompt): ...
 
+    def get_streaming_delimiter(self):
+        return b"\r\n\r\n"
 
 class OpenAIProvider(BaseProvider):
     def get_url(self):
@@ -302,6 +304,11 @@ class OpenAIProvider(BaseProvider):
             prompt_usage_tokens=usage.get("prompt_tokens", None) if usage else None,
         )
 
+class PerplexityProvider(OpenAIProvider):
+    def get_url(self):
+        return "/chat/completions"
+    def get_streaming_delimiter(self):
+        return b"\r\n\r\n"
 
 class FireworksProvider(OpenAIProvider):
     def format_payload(self, prompt, max_tokens, images):
@@ -493,6 +500,7 @@ PROVIDER_CLASS_MAP = {
     "fireworks": FireworksProvider,
     "vllm": VllmProvider,
     "openai": OpenAIProvider,
+    "perplexity": PerplexityProvider,
     "anyscale": OpenAIProvider,
     "together": TogetherProvider,
     "triton-infer": TritonInferProvider,
@@ -722,7 +730,7 @@ class LLMUser(HttpUser):
             except Exception as e:
                 raise RuntimeError(f"Error in response: {response.text}") from e
             t_first_token = None
-            for chunk in response.iter_lines(delimiter=b"\n\n"):
+            for chunk in response.iter_lines(delimiter=b"\r\n\r\n"):
                 if t_first_token is None:
                     t_first_token = time.perf_counter()
                     t_prev = time.perf_counter()
